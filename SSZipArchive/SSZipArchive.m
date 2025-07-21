@@ -1048,7 +1048,7 @@ BOOL _fileIsSymbolicLink(const unz_file_info *fileInfo);
     }    
 }
 
-+ (instancetype)initWithPath:(NSString *)path
++ (instancetype)zipArchiveWithPath:(NSString *)path
     withContentsOfDirectory:(NSString *)directoryPath
         keepParentDirectory:(BOOL)keepParentDirectory
            compressionLevel:(int)compressionLevel
@@ -1110,7 +1110,7 @@ BOOL _fileIsSymbolicLink(const unz_file_info *fileInfo);
     return zipArchive;
 }
 
-+ (instancetype)initWithPath:(NSString *)path
++ (instancetype)zipArchiveWithPath:(NSString *)path
     withContentsOfDirectory:(NSString *)directoryPath
         keepParentDirectory:(BOOL)keepParentDirectory
            compressionLevel:(int)compressionLevel
@@ -1120,7 +1120,7 @@ BOOL _fileIsSymbolicLink(const unz_file_info *fileInfo);
                     progressHandler:(void(^ _Nullable)(NSUInteger entryNumber, NSUInteger total))progressHandler
            completionHandler: (void(^ _Nullable)(BOOL success))completionHandler {
     if (!keeplinks) {
-        return [SSZipArchive initWithPath:path withContentsOfDirectory:directoryPath keepParentDirectory:keepParentDirectory compressionLevel:compressionLevel password:password AES:aes progressHandler:progressHandler completionHandler:completionHandler];
+        return [SSZipArchive zipArchiveWithPath:path withContentsOfDirectory:directoryPath keepParentDirectory:keepParentDirectory compressionLevel:compressionLevel password:password AES:aes progressHandler:progressHandler completionHandler:completionHandler];
     } else {
         SSZipArchive *zipArchive = [[SSZipArchive alloc] initWithPath:path];
         BOOL success = [zipArchive open];
