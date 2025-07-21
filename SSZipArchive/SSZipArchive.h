@@ -137,8 +137,7 @@ typedef NS_ENUM(NSInteger, SSZipArchiveErrorCode) {
             progressHandler:(void(^ _Nullable)(NSUInteger entryNumber, NSUInteger total))progressHandler
                keepSymlinks:(BOOL)keeplinks;
 
-- (void)zipArchiveWithPath:(NSString *)path
-    withContentsOfDirectory:(NSString *)directoryPath
+- (void)zipArchiveWithContentsOfDirectory:(NSString *)directoryPath
         keepParentDirectory:(BOOL)keepParentDirectory
            compressionLevel:(int)compressionLevel
                    password:(nullable NSString *)password

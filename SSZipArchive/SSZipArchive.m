@@ -1048,8 +1048,7 @@ BOOL _fileIsSymbolicLink(const unz_file_info *fileInfo);
     }    
 }
 
-- (void)zipArchiveWithPath:(NSString *)path
-    withContentsOfDirectory:(NSString *)directoryPath
+- (void)zipArchiveWithContentsOfDirectory:(NSString *)directoryPath
         keepParentDirectory:(BOOL)keepParentDirectory
            compressionLevel:(int)compressionLevel
                    password:(nullable NSString *)password
@@ -1076,7 +1075,7 @@ BOOL _fileIsSymbolicLink(const unz_file_info *fileInfo);
         }
         for (__strong NSString *fileName in allObjects) {
             NSString *fullFilePath = [directoryPath stringByAppendingPathComponent:fileName];
-            if ([fullFilePath isEqualToString:path]) {
+            if ([fullFilePath isEqualToString: _path]) {
                 NSLog(@"[SSZipArchive] the archive path and the file path: %@ are the same, which is forbidden.", fullFilePath);
                 continue;
             }
@@ -1107,8 +1106,7 @@ BOOL _fileIsSymbolicLink(const unz_file_info *fileInfo);
     completionHandler(success);
 }
 
-- (void)zipArchiveWithPath:(NSString *)path
-    withContentsOfDirectory:(NSString *)directoryPath
+- (void)zipArchiveWithContentsOfDirectory:(NSString *)directoryPath
         keepParentDirectory:(BOOL)keepParentDirectory
            compressionLevel:(int)compressionLevel
                    password:(nullable NSString *)password
@@ -1117,7 +1115,7 @@ BOOL _fileIsSymbolicLink(const unz_file_info *fileInfo);
                     progressHandler:(void(^ _Nullable)(NSUInteger entryNumber, NSUInteger total))progressHandler
            completionHandler: (void(^ _Nullable)(BOOL success))completionHandler {
     if (!keeplinks) {
-        return [self zipArchiveWithPath:path withContentsOfDirectory:directoryPath keepParentDirectory:keepParentDirectory compressionLevel:compressionLevel password:password AES:aes progressHandler:progressHandler completionHandler:completionHandler];
+        return [self zipArchiveWithContentsOfDirectory:directoryPath keepParentDirectory:keepParentDirectory compressionLevel:compressionLevel password:password AES:aes progressHandler:progressHandler completionHandler:completionHandler];
     } else {
         BOOL success = [self open];
         if (success) {
