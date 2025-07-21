@@ -1048,6 +1048,130 @@ BOOL _fileIsSymbolicLink(const unz_file_info *fileInfo);
     }    
 }
 
++ (instancetype)initWithPath:(NSString *)path
+    withContentsOfDirectory:(NSString *)directoryPath
+        keepParentDirectory:(BOOL)keepParentDirectory
+           compressionLevel:(int)compressionLevel
+                   password:(nullable NSString *)password
+                        AES:(BOOL)aes
+            progressHandler:(void(^ _Nullable)(NSUInteger entryNumber, NSUInteger total))progressHandler
+           completionHandler: (void(^ _Nullable)(BOOL success))completionHandler {
+
+    SSZipArchive *zipArchive = [[SSZipArchive alloc] initWithPath:path];
+    BOOL success = [zipArchive open];
+    if (success) {
+        // use a local fileManager (queue/thread compatibility)
+        NSFileManager *fileManager = [[NSFileManager alloc] init];
+        NSDirectoryEnumerator *dirEnumerator = [fileManager enumeratorAtPath:directoryPath];
+        NSArray<NSString *> *allObjects = dirEnumerator.allObjects;
+        NSUInteger total = allObjects.count, complete = 0;
+        if (!total) {
+            // <https://github.com/ZipArchive/ZipArchive/issues/621> let's check if it's an actual directory.
+            BOOL isDir;
+            [fileManager fileExistsAtPath:directoryPath isDirectory:&isDir];
+            if (!isDir) {
+                success = NO;
+            } else if (keepParentDirectory) {
+                allObjects = @[@""];
+                total = 1;
+            }
+        }
+        for (__strong NSString *fileName in allObjects) {
+            NSString *fullFilePath = [directoryPath stringByAppendingPathComponent:fileName];
+            if ([fullFilePath isEqualToString:path]) {
+                NSLog(@"[SSZipArchive] the archive path and the file path: %@ are the same, which is forbidden.", fullFilePath);
+                continue;
+            }
+
+            if (keepParentDirectory) {
+                fileName = [directoryPath.lastPathComponent stringByAppendingPathComponent:fileName];
+            }
+
+            BOOL isDir;
+            [fileManager fileExistsAtPath:fullFilePath isDirectory:&isDir];
+            if (!isDir) {
+                // file
+                success &= [zipArchive writeFileAtPath:fullFilePath withFileName:fileName compressionLevel:compressionLevel password:password AES:aes];
+            } else {
+                // directory
+                if (![fileManager enumeratorAtPath:fullFilePath].nextObject) {
+                    // empty directory
+                    success &= [zipArchive writeFolderAtPath:fullFilePath withFolderName:fileName withPassword:password];
+                }
+            }
+            if (progressHandler) {
+                complete++;
+                progressHandler(complete, total);
+            }
+        }
+        success &= [zipArchive close];
+    }
+    completionHandler(success);
+    return zipArchive;
+}
+
++ (instancetype)initWithPath:(NSString *)path
+    withContentsOfDirectory:(NSString *)directoryPath
+        keepParentDirectory:(BOOL)keepParentDirectory
+           compressionLevel:(int)compressionLevel
+                   password:(nullable NSString *)password
+                        AES:(BOOL)aes
+                       keepSymlinks:(BOOL)keeplinks
+                    progressHandler:(void(^ _Nullable)(NSUInteger entryNumber, NSUInteger total))progressHandler
+           completionHandler: (void(^ _Nullable)(BOOL success))completionHandler {
+    if (!keeplinks) {
+        return [SSZipArchive initWithPath:path withContentsOfDirectory:directoryPath keepParentDirectory:keepParentDirectory compressionLevel:compressionLevel password:password AES:aes progressHandler:progressHandler completionHandler:completionHandler];
+    } else {
+        SSZipArchive *zipArchive = [[SSZipArchive alloc] initWithPath:path];
+        BOOL success = [zipArchive open];
+        if (success) {
+            // use a local fileManager (queue/thread compatibility)
+            NSFileManager *fileManager = [[NSFileManager alloc] init];
+            NSDirectoryEnumerator *dirEnumerator = [fileManager enumeratorAtPath:directoryPath];
+            NSArray<NSString *> *allObjects = dirEnumerator.allObjects;
+            NSUInteger total = allObjects.count, complete = 0;
+            if (keepParentDirectory && !total) {
+                allObjects = @[@""];
+                total = 1;
+            }
+            for (__strong NSString *fileName in allObjects) {
+                NSString *fullFilePath = [directoryPath stringByAppendingPathComponent:fileName];
+
+                if (keepParentDirectory) {
+                    fileName = [directoryPath.lastPathComponent stringByAppendingPathComponent:fileName];
+                }
+                //is symlink
+                BOOL isSymlink = NO;
+                if (mz_os_is_symlink(fullFilePath.fileSystemRepresentation) == MZ_OK)
+                    isSymlink = YES;
+                BOOL isDir;
+                [fileManager fileExistsAtPath:fullFilePath isDirectory:&isDir];
+                if (!isDir || isSymlink) {
+                    // file or symlink
+                    if (!isSymlink) {
+                        success &= [zipArchive writeFileAtPath:fullFilePath withFileName:fileName compressionLevel:compressionLevel password:password AES:aes];
+                    } else {
+                        success &= [zipArchive writeSymlinkFileAtPath:fullFilePath withFileName:fileName compressionLevel:compressionLevel password:password AES:aes];
+                    }
+                } else {
+                    // directory
+                    if (![fileManager enumeratorAtPath:fullFilePath].nextObject) {
+                        // empty directory
+                        success &= [zipArchive writeFolderAtPath:fullFilePath withFolderName:fileName withPassword:password];
+                    }
+                }
+                if (progressHandler) {
+                    complete++;
+                    progressHandler(complete, total);
+                }
+            }
+            success &= [zipArchive close];
+        }
+        completionHandler(success);
+        return zipArchive;
+    }
+}
+
 - (BOOL)writeSymlinkFileAtPath:(NSString *)path withFileName:(nullable NSString *)fileName compressionLevel:(int)compressionLevel password:(nullable NSString *)password AES:(BOOL)aes
 {
     NSAssert((_zip != NULL), @"Attempting to write to an archive which was never opened");
