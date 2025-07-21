@@ -1048,7 +1048,7 @@ BOOL _fileIsSymbolicLink(const unz_file_info *fileInfo);
     }    
 }
 
-+ (instancetype)zipArchiveWithPath:(NSString *)path
+- (void)zipArchiveWithPath:(NSString *)path
     withContentsOfDirectory:(NSString *)directoryPath
         keepParentDirectory:(BOOL)keepParentDirectory
            compressionLevel:(int)compressionLevel
@@ -1056,9 +1056,7 @@ BOOL _fileIsSymbolicLink(const unz_file_info *fileInfo);
                         AES:(BOOL)aes
             progressHandler:(void(^ _Nullable)(NSUInteger entryNumber, NSUInteger total))progressHandler
            completionHandler: (void(^ _Nullable)(BOOL success))completionHandler {
-
-    SSZipArchive *zipArchive = [[SSZipArchive alloc] initWithPath:path];
-    BOOL success = [zipArchive open];
+    BOOL success = [self open];
     if (success) {
         // use a local fileManager (queue/thread compatibility)
         NSFileManager *fileManager = [[NSFileManager alloc] init];
@@ -1091,12 +1089,12 @@ BOOL _fileIsSymbolicLink(const unz_file_info *fileInfo);
             [fileManager fileExistsAtPath:fullFilePath isDirectory:&isDir];
             if (!isDir) {
                 // file
-                success &= [zipArchive writeFileAtPath:fullFilePath withFileName:fileName compressionLevel:compressionLevel password:password AES:aes];
+                success &= [self writeFileAtPath:fullFilePath withFileName:fileName compressionLevel:compressionLevel password:password AES:aes];
             } else {
                 // directory
                 if (![fileManager enumeratorAtPath:fullFilePath].nextObject) {
                     // empty directory
-                    success &= [zipArchive writeFolderAtPath:fullFilePath withFolderName:fileName withPassword:password];
+                    success &= [self writeFolderAtPath:fullFilePath withFolderName:fileName withPassword:password];
                 }
             }
             if (progressHandler) {
@@ -1104,13 +1102,12 @@ BOOL _fileIsSymbolicLink(const unz_file_info *fileInfo);
                 progressHandler(complete, total);
             }
         }
-        success &= [zipArchive close];
+        success &= [self close];
     }
     completionHandler(success);
-    return zipArchive;
 }
 
-+ (instancetype)zipArchiveWithPath:(NSString *)path
+- (void)zipArchiveWithPath:(NSString *)path
     withContentsOfDirectory:(NSString *)directoryPath
         keepParentDirectory:(BOOL)keepParentDirectory
            compressionLevel:(int)compressionLevel
@@ -1120,10 +1117,9 @@ BOOL _fileIsSymbolicLink(const unz_file_info *fileInfo);
                     progressHandler:(void(^ _Nullable)(NSUInteger entryNumber, NSUInteger total))progressHandler
            completionHandler: (void(^ _Nullable)(BOOL success))completionHandler {
     if (!keeplinks) {
-        return [SSZipArchive zipArchiveWithPath:path withContentsOfDirectory:directoryPath keepParentDirectory:keepParentDirectory compressionLevel:compressionLevel password:password AES:aes progressHandler:progressHandler completionHandler:completionHandler];
+        return [self zipArchiveWithPath:path withContentsOfDirectory:directoryPath keepParentDirectory:keepParentDirectory compressionLevel:compressionLevel password:password AES:aes progressHandler:progressHandler completionHandler:completionHandler];
     } else {
-        SSZipArchive *zipArchive = [[SSZipArchive alloc] initWithPath:path];
-        BOOL success = [zipArchive open];
+        BOOL success = [self open];
         if (success) {
             // use a local fileManager (queue/thread compatibility)
             NSFileManager *fileManager = [[NSFileManager alloc] init];
@@ -1149,15 +1145,15 @@ BOOL _fileIsSymbolicLink(const unz_file_info *fileInfo);
                 if (!isDir || isSymlink) {
                     // file or symlink
                     if (!isSymlink) {
-                        success &= [zipArchive writeFileAtPath:fullFilePath withFileName:fileName compressionLevel:compressionLevel password:password AES:aes];
+                        success &= [self writeFileAtPath:fullFilePath withFileName:fileName compressionLevel:compressionLevel password:password AES:aes];
                     } else {
-                        success &= [zipArchive writeSymlinkFileAtPath:fullFilePath withFileName:fileName compressionLevel:compressionLevel password:password AES:aes];
+                        success &= [self writeSymlinkFileAtPath:fullFilePath withFileName:fileName compressionLevel:compressionLevel password:password AES:aes];
                     }
                 } else {
                     // directory
                     if (![fileManager enumeratorAtPath:fullFilePath].nextObject) {
                         // empty directory
-                        success &= [zipArchive writeFolderAtPath:fullFilePath withFolderName:fileName withPassword:password];
+                        success &= [self writeFolderAtPath:fullFilePath withFolderName:fileName withPassword:password];
                     }
                 }
                 if (progressHandler) {
@@ -1165,10 +1161,9 @@ BOOL _fileIsSymbolicLink(const unz_file_info *fileInfo);
                     progressHandler(complete, total);
                 }
             }
-            success &= [zipArchive close];
+            success &= [self close];
         }
         completionHandler(success);
-        return zipArchive;
     }
 }
 
