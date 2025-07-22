@@ -47,6 +47,7 @@ BOOL _fileIsSymbolicLink(const unz_file_info *fileInfo);
     /// path for zip file
     NSString *_path;
     zipFile _zip;
+    BOOL _cancelZip;    // 是否取消压缩
 }
 
 #pragma mark - Password check
@@ -1054,7 +1055,7 @@ BOOL _fileIsSymbolicLink(const unz_file_info *fileInfo);
                    password:(nullable NSString *)password
                         AES:(BOOL)aes
             progressHandler:(void(^ _Nullable)(NSUInteger entryNumber, NSUInteger total))progressHandler
-           completionHandler: (void(^ _Nullable)(BOOL success))completionHandler {
+           completionHandler: (void(^ _Nullable)(BOOL success, BOOL isCancelled))completionHandler {
     BOOL success = [self open];
     if (success) {
         // use a local fileManager (queue/thread compatibility)
@@ -1074,6 +1075,12 @@ BOOL _fileIsSymbolicLink(const unz_file_info *fileInfo);
             }
         }
         for (__strong NSString *fileName in allObjects) {
+            if (_cancelZip) {
+                NSLog(@"取消压缩");
+                [self close];
+                completionHandler(NO, YES);
+                return;
+            }
             NSString *fullFilePath = [directoryPath stringByAppendingPathComponent:fileName];
             if ([fullFilePath isEqualToString: _path]) {
                 NSLog(@"[SSZipArchive] the archive path and the file path: %@ are the same, which is forbidden.", fullFilePath);
@@ -1103,7 +1110,7 @@ BOOL _fileIsSymbolicLink(const unz_file_info *fileInfo);
         }
         success &= [self close];
     }
-    completionHandler(success);
+    completionHandler(success, NO);
 }
 
 - (void)zipArchiveWithContentsOfDirectory:(NSString *)directoryPath
@@ -1113,7 +1120,7 @@ BOOL _fileIsSymbolicLink(const unz_file_info *fileInfo);
                         AES:(BOOL)aes
                        keepSymlinks:(BOOL)keeplinks
                     progressHandler:(void(^ _Nullable)(NSUInteger entryNumber, NSUInteger total))progressHandler
-           completionHandler: (void(^ _Nullable)(BOOL success))completionHandler {
+           completionHandler: (void(^ _Nullable)(BOOL success, BOOL isCancelled))completionHandler {
     if (!keeplinks) {
         return [self zipArchiveWithContentsOfDirectory:directoryPath keepParentDirectory:keepParentDirectory compressionLevel:compressionLevel password:password AES:aes progressHandler:progressHandler completionHandler:completionHandler];
     } else {
@@ -1129,6 +1136,12 @@ BOOL _fileIsSymbolicLink(const unz_file_info *fileInfo);
                 total = 1;
             }
             for (__strong NSString *fileName in allObjects) {
+                if (_cancelZip) {
+                    NSLog(@"取消压缩");
+                    [self close];
+                    completionHandler(NO, YES);
+                    return;
+                }
                 NSString *fullFilePath = [directoryPath stringByAppendingPathComponent:fileName];
 
                 if (keepParentDirectory) {
@@ -1161,7 +1174,7 @@ BOOL _fileIsSymbolicLink(const unz_file_info *fileInfo);
             }
             success &= [self close];
         }
-        completionHandler(success);
+        completionHandler(success, NO);
     }
 }
 
@@ -1329,6 +1342,10 @@ BOOL _fileIsSymbolicLink(const unz_file_info *fileInfo);
     int error = zipClose(_zip, NULL);
     _zip = nil;
     return error == ZIP_OK;
+}
+
+- (void)cancelZipArchive {
+    _cancelZip = YES;
 }
 
 #pragma mark - Private

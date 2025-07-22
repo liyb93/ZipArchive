@@ -144,7 +144,7 @@ typedef NS_ENUM(NSInteger, SSZipArchiveErrorCode) {
                         AES:(BOOL)aes
                        keepSymlinks:(BOOL)keeplinks
             progressHandler:(void(^ _Nullable)(NSUInteger entryNumber, NSUInteger total))progressHandler
-           completionHandler: (void(^ _Nullable)(BOOL success))completionHandler;
+           completionHandler: (void(^ _Nullable)(BOOL success, BOOL isCancelled))completionHandler;
 
 - (instancetype)init NS_UNAVAILABLE;
 - (instancetype)initWithPath:(NSString *)path NS_DESIGNATED_INITIALIZER;
@@ -164,6 +164,9 @@ typedef NS_ENUM(NSInteger, SSZipArchiveErrorCode) {
 - (BOOL)writeData:(NSData *)data filename:(nullable NSString *)filename compressionLevel:(int)compressionLevel password:(nullable NSString *)password AES:(BOOL)aes;
 
 - (BOOL)close;
+
+// 取消压缩
+- (void)cancelZipArchive;
 
 @end
 

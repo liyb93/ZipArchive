@@ -28,6 +28,7 @@
 @property (weak, nonatomic) IBOutlet UILabel *info;
 @property (copy, nonatomic) NSString *samplePath;
 @property (copy, nonatomic) NSString *zipPath;
+@property (strong, nonatomic) SSZipArchive *zipArchive;
 
 @end
 
@@ -50,23 +51,37 @@
     _zipPath = [self tempZipPath];
     NSLog(@"Zip path: %@", _zipPath);
     NSString *password = _passwordField.text;
-    BOOL success = [SSZipArchive createZipFileAtPath:_zipPath
-                             withContentsOfDirectory:_samplePath
-                                 keepParentDirectory:NO
-                                    compressionLevel:-1
-                                            password:password.length > 0 ? password : nil
-                                                 AES:YES
-                                     progressHandler:nil];
-    if (success) {
-        NSLog(@"Success zip");
-        self.info.text = @"Success zip";
-        _unzipButton.enabled = YES;
-        _hasPasswordButton.enabled = YES;
-    } else {
-        NSLog(@"No success zip");
-        self.info.text = @"No success zip";
-    }
-    _resetButton.enabled = YES;
+    self.zipArchive = [[SSZipArchive alloc] initWithPath:_zipPath];
+    dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
+        [self.zipArchive zipArchiveWithContentsOfDirectory:self->_samplePath keepParentDirectory:NO compressionLevel:-1 password:password.length > 0 ? password : nil AES:YES keepSymlinks:YES progressHandler:^(NSUInteger number, NSUInteger total) {
+            CGFloat progress = (number / (float)total);
+            NSLog(@"压缩进度: %f", progress);
+        } completionHandler:^(BOOL success, BOOL isCancelled) {
+            NSLog(@"压缩完成: %zi, %zi", success, isCancelled);
+        }];
+    });
+
+//    BOOL success = [SSZipArchive createZipFileAtPath:_zipPath
+//                             withContentsOfDirectory:
+//                                 keepParentDirectory:NO
+//                                    compressionLevel:-1
+//                                            password:password.length > 0 ? password : nil
+//                                                 AES:YES
+//                                     progressHandler:nil];
+//    if (success) {
+//        NSLog(@"Success zip");
+//        self.info.text = @"Success zip";
+//        _unzipButton.enabled = YES;
+//        _hasPasswordButton.enabled = YES;
+//    } else {
+//        NSLog(@"No success zip");
+//        self.info.text = @"No success zip";
+//    }
+//    _resetButton.enabled = YES;
+}
+
+- (IBAction)cancelAction:(id)sender {
+    [self.zipArchive cancelZipArchive];
 }
 
 - (IBAction)unzipPressed:(id)sender {
