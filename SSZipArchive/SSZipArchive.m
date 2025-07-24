@@ -36,6 +36,7 @@ BOOL _fileIsSymbolicLink(const unz_file_info *fileInfo);
 - (BOOL)_isDirectory;
 - (NSString *)_sanitizedPath;
 - (BOOL)_escapesTargetDirectory:(NSString *)targetDirectory;
+- (NSString *)availablePathWithName:(NSString *)name;
 @end
 
 @interface SSZipArchive ()
@@ -520,7 +521,7 @@ BOOL _fileIsSymbolicLink(const unz_file_info *fileInfo);
                 strPath = @(currentFileNumber).stringValue;
             }
             
-            NSString *fullPath = [destination stringByAppendingPathComponent:strPath];
+            NSString *fullPath = [destination availablePathWithName:strPath];
             NSError *err = nil;
             if (preserveAttributes) {
                 NSDate *modDate = fileInfo.mz_dos_date != 0 ? [[self class] _dateWithMSDOSFormat:(UInt32)fileInfo.mz_dos_date] : NSDate.now;
@@ -1723,6 +1724,20 @@ BOOL _fileIsSymbolicLink(const unz_file_info *fileInfo)
 #endif
     
     return strPath;
+}
+
+/// 创建可用的新路径
+/// - Parameters:
+///   - name: 文件名/文件夹名
+/// - Returns: 返回生成的路径
+- (NSString *)availablePathWithName:(NSString *)name {
+    NSString *result = [self stringByAppendingPathComponent:name];
+    NSInteger index = 1;
+    while ([[NSFileManager defaultManager] fileExistsAtPath:result]) {
+        result = [self stringByAppendingPathComponent:[NSString stringWithFormat:@"%@ %zi", name, index]];
+        index += 1;
+    }
+    return result;
 }
 
 /// Detects if the path represented in this string is pointing outside of the targetDirectory passed as argument.
